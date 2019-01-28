@@ -16,6 +16,13 @@ class SlackAttachment
     public $title;
 
     /**
+     * The attachment's attachment type field.
+     *
+     * @var string
+     */
+    public $attachmentType;
+
+    /**
      * The attachment's URL.
      *
      * @var string
@@ -28,6 +35,13 @@ class SlackAttachment
      * @var string
      */
     public $pretext;
+
+    /**
+     * The attachment's callback ID.
+     *
+     * @var string
+     */
+    public $callbackId;
 
     /**
      * The attachment's text content.
@@ -143,6 +157,31 @@ class SlackAttachment
     }
 
     /**
+     * Set the type of the attachment.
+     *
+     * @param  string  $type
+     * @return $this
+     */
+    public function attachmentType($attachmentType)
+    {
+        $this->attachmentType = $attachmentType;
+
+        return $this;
+    }
+
+    /**
+     * Alias method to set the type of attachment.
+     *
+     * @alias attachmentType
+     * @param  string  $type
+     * @return $this
+     */
+    public function type($type)
+    {
+        return $this->attachmentType($type);
+    }
+
+    /**
      * Set the pretext of the attachment.
      *
      * @param  string  $pretext
@@ -151,6 +190,19 @@ class SlackAttachment
     public function pretext($pretext)
     {
         $this->pretext = $pretext;
+
+        return $this;
+    }
+
+    /**
+     * Set the callback ID of the attachment.
+     *
+     * @param  string  $content
+     * @return $this
+     */
+    public function callbackId($id)
+    {
+        $this->callbackId = $id;
 
         return $this;
     }
@@ -286,6 +338,108 @@ class SlackAttachment
             'url' => $url,
             'style' => $style,
         ];
+
+        return $this;
+    }
+
+    /**
+     * Add an interactive button under the attachment.
+     *
+     * @param  \Closure|array|string  $text
+     * @param  string  $name
+     * @param  string  $value
+     * @param  string  $style
+     * @param  null|array  $confirm
+     * @return $this
+     */
+    public function button($text, string $name = '', string $value = '', string $style = '', ?array $confirm = null)
+    {
+        if (is_callable($text)) {
+            $callback = $text;
+
+            $callback($attachmentButton = new SlackAttachmentButton);
+
+            $this->actions[] = $attachmentButton;
+
+            return $this;
+        }
+        
+        if (is_array($text)) {
+            extract($text);
+        }
+
+        $this->actions[] = array_filter([
+            'type' => 'button',
+            'text' => $text,
+            'name' => $name,
+            'value' => $value,
+            'style' => $style,
+            'confirm' => $confirm
+        ]);
+
+        return $this;
+    }
+
+    /**
+     * Add a link button under the attachment.
+     *
+     * @param  \Closure|array|string  $text
+     * @param  string  $url
+     * @param  string  $style
+     * @return $this
+     */
+    public function link($text, string $url = '', string $style = '')
+    {
+        if (is_callable($text)) {
+            return $this->button($text);
+        }
+        
+        if (is_array($text)) {
+            extract($text);
+        }
+
+        $this->actions[] = array_filter([
+            'type' => 'button',
+            'text' => $text,
+            'url' => $url,
+            'style' => $style
+        ]);
+
+        return $this;
+    }
+
+    /**
+     * Add an interactive menu under the attachment.
+     *
+     * @param  \Closure|array|string  $text
+     * @param  string  $name
+     * @param  string  $value
+     * @param  string  $style
+     * @param  null|array  $confirm
+     * @return $this
+     */
+    public function menu($text, string $name = '', ?array $options = null)
+    {
+        if (is_callable($text)) {
+            $callback = $text;
+
+            $callback($attachmentMenu = new SlackAttachmentMenu);
+
+            $this->actions[] = $attachmentMenu;
+
+            return $this;
+        }
+        
+        if (is_array($text)) {
+            extract($text);
+        }
+
+        $this->actions[] = array_filter([
+            'type' => 'select',
+            'text' => $text,
+            'name' => $name,
+            'options' => $options
+        ]);
 
         return $this;
     }

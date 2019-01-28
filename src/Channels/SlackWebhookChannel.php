@@ -7,6 +7,7 @@ use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Messages\SlackMessage;
 use Illuminate\Notifications\Messages\SlackAttachment;
 use Illuminate\Notifications\Messages\SlackAttachmentField;
+use Illuminate\Notifications\Messages\SlackAttachmentButton;
 
 class SlackWebhookChannel
 {
@@ -40,7 +41,7 @@ class SlackWebhookChannel
         if (! $url = $notifiable->routeNotificationFor('slack', $notification)) {
             return;
         }
-
+        
         $this->http->post($url, $this->buildJsonPayload(
             $notification->toSlack($notifiable)
         ));
@@ -82,10 +83,12 @@ class SlackWebhookChannel
     {
         return collect($message->attachments)->map(function ($attachment) use ($message) {
             return array_filter([
-                'actions' => $attachment->actions,
+                'actions' => $this->actions($attachment),
+                'attachment_type' => $attachment->attachmentType,
                 'author_icon' => $attachment->authorIcon,
                 'author_link' => $attachment->authorLink,
                 'author_name' => $attachment->authorName,
+                'callback_id' => $attachment->callbackId,
                 'color' => $attachment->color ?: $message->color(),
                 'fallback' => $attachment->fallback,
                 'fields' => $this->fields($attachment),
@@ -118,5 +121,22 @@ class SlackWebhookChannel
 
             return ['title' => $key, 'value' => $value, 'short' => true];
         })->values()->all();
+    }
+
+    /**
+     * Format the attachment's actions.
+     *
+     * @param  \Illuminate\Notifications\Messages\SlackAttachment  $attachment
+     * @return array
+     */
+    protected function actions(SlackAttachment $attachment)
+    {
+        return collect($attachment->actions)->map(function ($action) {
+            if (method_exists($action, 'toArray')) {
+                return $action->toArray();
+            }
+
+            return (array) $action;
+        })->all();
     }
 }
